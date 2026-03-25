@@ -33,15 +33,19 @@ map.on('click', function(e) {
   var lat = e.latlng.lat.toFixed(5);
   var lng = e.latlng.lng.toFixed(5);
 
-  // 创建标记
-  var marker = L.marker([lat, lng]).addTo(map);
+  // 弹出确认框
+  var confirmSave = confirm(
+    "Coordinates：\nlatitude: " + lat + "\nlongitude: " + lng + "\n\nSave the location？"
+  );
 
-  // 绑定弹窗
-  marker.bindPopup(
-    "coordinate：<br>latitude: " + lat + "<br>longitude: " + lng
-  ).openPopup();
+  if (confirmSave) {
+    var marker = L.marker([lat, lng]).addTo(map);
+
+    marker.bindPopup(
+      "📍 Saved location<br>latitude: " + lat + "<br>longitude: " + lng
+    );
+  }
 });
-
 </script>
 
 </body>
