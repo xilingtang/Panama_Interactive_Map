@@ -8,44 +8,139 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
-  <style>
-    #map { height: 100vh; }
-  </style>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 </head>
+
 <body>
 
-<div id="map"></div>
-
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<div id="map" style="height: 600px;"></div>
 
 <script>
-// 初始化地图（巴拿马城）
+
+// =======================
+// 初始化地图
+// =======================
 var map = L.map('map').setView([8.9824, -79.5199], 13);
 
-// 添加地图底图（OpenStreetMap）
+// 底图
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-// 点击地图显示坐标 + 添加标记
-map.on('click', function(e) {
-  var lat = e.latlng.lat.toFixed(5);
-  var lng = e.latlng.lng.toFixed(5);
 
-  // 弹出确认框
-  var confirmSave = confirm(
-    "Coordinates：\nlatitude: " + lat + "\nlongitude: " + lng + "\n\nSave the location？"
-  );
+// =======================
+// 状态变量
+// =======================
+var selectedBuilding = null;
+var geojsonLayer = null;
 
-  if (confirmSave) {
-    var marker = L.marker([lat, lng]).addTo(map);
 
-    marker.bindPopup(
-      "📍 Saved location<br>latitude: " + lat + "<br>longitude: " + lng
-    );
-  }
-});
+// =======================
+// 加载建筑 GeoJSON
+// =======================
+fetch('buildings.geojson')
+  .then(response => response.json())
+  .then(data => {
+
+    geojsonLayer = L.geoJSON(data, {
+
+      style: function(feature) {
+        return {
+          color: "#ff7800",
+          weight: 1,
+          fillColor: "#ffcc00",
+          fillOpacity: 0.5
+        };
+      },
+
+      onEachFeature: function(feature, layer) {
+
+        layer.on('click', function(e) {
+
+          // =======================
+          // 第一步：选择建筑
+          // =======================
+          if (!selectedBuilding) {
+
+            L.DomEvent.stopPropagation(e);
+
+            var confirmSelect = confirm("Select this building?");
+
+            if (confirmSelect) {
+              selectedBuilding = layer;
+
+              layer.setStyle({
+                fillColor: 'red',
+                fillOpacity: 0.7
+              });
+            }
+
+            return;
+          }
+
+
+          // =======================
+          // 切换建筑（选新的）
+          // =======================
+          if (selectedBuilding !== layer) {
+
+            L.DomEvent.stopPropagation(e);
+
+            var confirmSwitch = confirm("Switch to this building?");
+
+            if (confirmSwitch) {
+
+              // 恢复旧建筑样式
+              geojsonLayer.resetStyle(selectedBuilding);
+
+              // 设置新建筑
+              selectedBuilding = layer;
+
+              layer.setStyle({
+                fillColor: 'red',
+                fillOpacity: 0.7
+              });
+            }
+
+            return;
+          }
+
+
+          // =======================
+          // 第二步：点击建筑内部 → 获取坐标
+          // =======================
+          if (selectedBuilding === layer) {
+
+            var lat = e.latlng.lat.toFixed(5);
+            var lng = e.latlng.lng.toFixed(5);
+
+            var confirmSave = confirm(
+              "Coordinates:\nlatitude: " + lat +
+              "\nlongitude: " + lng +
+              "\n\nSave this point?"
+            );
+
+            if (confirmSave) {
+              var marker = L.marker([lat, lng]).addTo(map);
+
+              marker.bindPopup(
+                "📍 Saved location<br>latitude: " + lat +
+                "<br>longitude: " + lng
+              );
+            }
+          }
+
+        });
+      }
+
+    });
+
+    geojsonLayer.addTo(map);
+
+  });
+
 </script>
 
 </body>
